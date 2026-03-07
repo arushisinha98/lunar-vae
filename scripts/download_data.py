@@ -1,11 +1,10 @@
+#!/usr/bin/env python3
 import os
 from huggingface_hub import hf_hub_download
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
-
-FILENAME = "diviner_learn_data_c7_processed_Xf_7_2000.npy"
 
 # Get credentials from environment
 USERNAME = os.getenv("HUGGINGFACE_USERNAME")
@@ -24,8 +23,9 @@ os.makedirs(DATA_DIR, exist_ok=True)
 downloaded_path = hf_hub_download(
     repo_id=DATASET_REPO,
     filename=FILENAME,
-    use_auth_token=TOKEN,
-    local_dir=DATA_DIR
+    token=TOKEN,
+    local_dir=DATA_DIR,
+    repo_type="dataset"
 )
 
 print(f"Downloaded file to: {downloaded_path}")

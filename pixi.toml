@@ -2,7 +2,7 @@
 authors = ["Arushi Sinha <115908316+arushisinha98@users.noreply.github.com>"]
 channels = ["conda-forge"]
 name = "lunar-vae"
-platforms = ["osx-arm64"]
+platforms = ["osx-arm64", "linux-64"]
 version = "0.1.0"
 
 [tasks]
