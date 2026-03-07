@@ -69,6 +69,7 @@ class Constants(ConstantsBase):
         self.DATA_PATH = "data/diviner_learn_data_c7_processed_Xf_7_2000.npy"
         self.N_EXAMPLES = 1985693
         self.T_SHAPE = (1, 122) # NCHAN, NT
+        self.VELOCITY_SHAPE = self.T_SHAPE # for TensorBoard graph visualization
         self.T_MU = 192.39233778
         self.T_SIGMA = 99.1400795
 
