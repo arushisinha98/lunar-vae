@@ -7,7 +7,6 @@ Created on Wed Mar 27 18:40:57 2019
 """
 
 import pickle
-import sys
 
 import os, shutil
 
