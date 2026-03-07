@@ -389,55 +389,19 @@ class Trainer:
 
 if __name__ == "__main__":
     
-    #cs = [Constants()]
-    
-    DEVICE = 3
+    data_path = "data/diviner_learn_data_c7_processed_Xf_7_2000.npy"
+    n_examples = np.load(data_path).shape[0]
 
+    DEVICE = 0
 
     cs = []
-    
-    '''
-    #for threshold in [500, 1000]:
-    #for threshold in [2000, 4000,]:
-    #for threshold in [8000, 16000]:
-    for threshold in [32000,]:
-        
-        for beta in [0.3,0.2,0.1,0.5]:
-            
-            data_path = "../data_c7_processed/Xf_7_%i.npy"%(threshold)
-            n_examples = np.load(data_path).shape[0]
-            
-            cs.append(Constants(RUN="vae_final10_4_t%i_b%.2f_all"%(threshold,beta),
-                                N_LATENT=4,
-                                DATA_PATH=data_path,
-                                N_EXAMPLES=n_examples,
-                                DEVICE=DEVICE,
-                                VAE_BETA=beta,
-                                ))
-    '''
-    
-    # FINAL RUN
-    
-    cs = []
-    
-    #for n_latent in [4,1]:
-    #for n_latent in [2,5]:
-    #for n_latent in [3,6]:
-    for n_latent in [7,]:
-        
-    #for n_latent in [4,]:
-        
-        #for i in range(0,10):
-        #for i in range(10,20):
-        #for i in range(20,30):
-        #for i in range(30,40):
-            
-            cs.append(Constants(RUN="vae_final11_%i"%(n_latent),
-                                N_LATENT=n_latent,
-                                DEVICE=DEVICE,
-                                ))
-        
-
+    cs.append(Constants(
+        RUN="vae_run_diviner",
+        N_LATENT=4,
+        DATA_PATH=data_path,
+        N_EXAMPLES=n_examples,
+        DEVICE=DEVICE,
+    ))
     
     for c in cs:
         run = Trainer(c)

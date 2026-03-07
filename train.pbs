@@ -1,0 +1,18 @@
+#!/bin/bash
+#PBS -N vae_train
+#PBS -o vae_train_$PBS_JOBID.log
+#PBS -e vae_train_$PBS_JOBID.err
+#PBS -l select=1:ncpus=4:ngpus=1:mem=16gb
+#PBS -l walltime=24:00:00
+
+cd $PBS_O_WORKDIR
+
+# Load modules if needed
+# module load anaconda/3
+# module load cuda/11.3
+
+# Activate your environment if needed
+# source activate your_env
+
+# Run your training script
+pixi run python src/main.py
