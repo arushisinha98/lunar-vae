@@ -2,6 +2,8 @@
 .pixi/*
 !.pixi/config.toml
 
+# pycache
+*/__pycache__/**
 # data
 data/
 
