@@ -2,7 +2,7 @@
 #PBS -N vae_train
 #PBS -o vae_train_$PBS_JOBID.log
 #PBS -e vae_train_$PBS_JOBID.err
-#PBS -l select=1:ncpus=16:ngpus=1:mem=16gb
+#PBS -l select=1:ncpus=4:ngpus=1:mem=16gb
 #PBS -l walltime=24:00:00
 
 cd $PBS_O_WORKDIR
@@ -15,4 +15,4 @@ cd $PBS_O_WORKDIR
 # source activate your_env
 
 # Run your training script
-pixi run python src/main.py
+pixi run python -u src/main.py

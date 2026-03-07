@@ -33,7 +33,7 @@ class VAE(nn.Module):
 
         ## ENCODER
         
-        #(in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True, padding_mode='zeros')
+        # (in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True, padding_mode='zeros')
         
         self.conv1 = nn.Conv1d(N_CHANNELS, N_HIDDEN, 3, 1, 1)
         self.conv1_bn = nn.BatchNorm1d(N_HIDDEN)
@@ -67,8 +67,8 @@ class VAE(nn.Module):
         self.conv8_bn = nn.BatchNorm1d(N_HIDDEN)
         self.drop8 = nn.Dropout(c.DROPOUT_RATE)
         
-        self.convMU = nn.Conv1d(N_HIDDEN, N_LATENT, 1, 1, 0)# linear layer
-        self.convSD = nn.Conv1d(N_HIDDEN, N_LATENT, 1, 1, 0)# linear layer
+        self.convMU = nn.Conv1d(N_HIDDEN, N_LATENT, 1, 1, 0) # linear layer
+        self.convSD = nn.Conv1d(N_HIDDEN, N_LATENT, 1, 1, 0) # linear layer
         
         ## DECODER
 
@@ -102,7 +102,7 @@ class VAE(nn.Module):
         self.convT7_bn = nn.BatchNorm1d(N_HIDDEN)
         self.dropT7 = nn.Dropout(c.DROPOUT_RATE)
         
-        self.convO = nn.Conv1d(N_HIDDEN, N_CHANNELS, 1, 1, 0)# linear layer
+        self.convO = nn.Conv1d(N_HIDDEN, N_CHANNELS, 1, 1, 0) # linear layer
 
     def encode(self, x):
 
@@ -120,10 +120,8 @@ class VAE(nn.Module):
         x = self.drop6(self.c.ACTIVATION(self.conv6_bn(self.conv6(x))))
         x = self.drop7(self.c.ACTIVATION(self.conv7_bn(self.conv7(x))))
         x = self.drop8(self.c.ACTIVATION(self.conv8_bn(self.conv8(x))))
-
-        #print(x.shape)
         
-        mu = self.convMU(x)# latent variables
+        mu = self.convMU(x) # latent variables
         logvar = self.convSD(x)
         
         return mu,logvar
@@ -135,8 +133,6 @@ class VAE(nn.Module):
         return z
     
     def decode(self, z):
-
-        #print(l.shape)
         
         x = self.dropT1(self.c.ACTIVATION(self.convT1_bn(self.convT1(z))))
         x = self.dropT2(self.c.ACTIVATION(self.convT2_bn(self.convT2(x))))
@@ -146,15 +142,9 @@ class VAE(nn.Module):
         x = self.dropT6(self.c.ACTIVATION(self.convT6_bn(self.convT6(x))))
         x = self.dropT7(self.c.ACTIVATION(self.convT7_bn(self.convT7(x))))
         
-        #print(x.shape)
-        
-        x = self.convO(x)# final linear layer
-        
-        #print(x.shape)
+        x = self.convO(x) # final linear layer
         
         x = x[:,:,3:-3]
-        
-        #print(x.shape)
         
         return x
         

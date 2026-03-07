@@ -12,7 +12,6 @@ import numpy as np
 
 
 # DEFINE DATASET
-
 class TtDataset(Dataset):
 
     def __init__(self,
@@ -20,7 +19,7 @@ class TtDataset(Dataset):
                  irange=None,
                  verbose=True):
         
-        self.c = c# constants data
+        self.c = c # constants data
         self.verbose = verbose
         
         if type(irange) == type(None):
@@ -34,7 +33,7 @@ class TtDataset(Dataset):
             print(self.irange)
         
         # load everything into memory, rather than in __getitem__
-        X = np.load(c.DATA_PATH)# shape (N_EXAMPLES, NCHAN, NT)
+        X = np.load(c.DATA_PATH) # shape (N_EXAMPLES, NCHAN, NT)
         print(X.shape, "loaded")
         assert len(X) == self.c.N_EXAMPLES
         assert self.c.T_SHAPE[0] == X.shape[1]
@@ -45,7 +44,7 @@ class TtDataset(Dataset):
         
         self.transform = ToTensor()
         
-    def __len__(self):# REQUIRED
+    def __len__(self): # REQUIRED
         return self.n_examples
     
     def _preprocess(self, profile, i):
@@ -62,7 +61,7 @@ class TtDataset(Dataset):
 class ToTensor(object):
     """Convert numpy arrays in sample to Tensors."""
         
-    def __call__(self, sample):# REQUIRED
+    def __call__(self, sample): # REQUIRED
         transform = {}
         for k in sample:
             if k=="i":
@@ -102,8 +101,8 @@ if __name__ == "__main__":
     trainloader = DataLoader(traindataset,
                             batch_size=c.BATCH_SIZE,
                             shuffle=True, # reshuffles data at every epoch
-                            num_workers=0,# num_workers = number of multiprocessing workers
-                            drop_last=True)# so that each batch is complete
+                            num_workers=0, # num_workers = number of multiprocessing workers
+                            drop_last=True) # so that each batch is complete
     trainloader_iter = iter(trainloader)
     
 
@@ -115,8 +114,7 @@ if __name__ == "__main__":
         
     print("TEST dataset:")
     for i in range(10):
-        sample = testdataset[i]# data sample is read on the fly
-        #print(sample)
+        sample = testdataset[i] # data sample is read on the fly
         print(i, sample['inputs'][0].size(), sample['labels'][0].size(), sample['i'])
     print(sample['inputs'][0].dtype, sample['labels'][0].dtype)
     

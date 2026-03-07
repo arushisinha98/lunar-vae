@@ -46,15 +46,13 @@ def vae_loss(x_true, x, mu, logvar, c):
     # https://arxiv.org/abs/1312.6114
     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
     
-    #print(BCE, KLD)
-    
     return BCE + c.VAE_BETA*KLD
 
 
 if __name__ == "__main__":
     
     a = torch.ones((10,20))
-    b = torch.ones((10,20)).mul_(0.1)# (in place)
+    b = torch.ones((10,20)).mul_(0.1) # (in place)
     
     print(l2_sum_loss(a,b))
     
