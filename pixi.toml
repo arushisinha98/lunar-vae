@@ -1,0 +1,16 @@
+[workspace]
+authors = ["Arushi Sinha <115908316+arushisinha98@users.noreply.github.com>"]
+channels = ["conda-forge"]
+name = "lunar-vae"
+platforms = ["osx-arm64"]
+version = "0.1.0"
+
+[tasks]
+
+[dependencies]
+pytorch = ">=2.10.0,<3"
+numpy = ">=2.4.2,<3"
+matplotlib = ">=3.10.8,<4"
+tensorboardx = ">=2.6.2.2,<3"
+huggingface_hub = ">=1.5.0,<2"
+python-dotenv = ">=1.2.2,<2"
