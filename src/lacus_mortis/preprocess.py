@@ -63,7 +63,7 @@ AOI_LON       = 27.2                 # Lacus Mortis centre longitude (°E)
 AOI_RADIUS_KM = 150.0                # half-width of extraction region (km)
 
 BIN_SIZE_M    = 200.0                # grid bin size (m)  — paper Section 2.4
-MAX_TIME_GAP  = 4.0                  # reject profiles with gap > 4 hr (paper)
+MAX_TIME_GAP  = 6.0                  # reject profiles with gap > 6 hr (paper: 4 hr)
 EMIT_ANGLE_MAX = 10.0                # emission angle filter (paper Section 2.1)
 
 # GP interpolation parameters (paper Section 2.4)
@@ -168,16 +168,30 @@ def parse_xyz_file(path: Path) -> np.ndarray | None:
 
     n_cols = data.shape[1]
 
-    # Build a canonical 5-column array
+    # Build a canonical 5-column array: [lon, lat, local_time, temperature, emission_angle]
     out = np.zeros((len(data), 5), dtype=np.float32)
-    out[:, 0] = data[:, COL_LON]
-    out[:, 1] = data[:, COL_LAT]
-    out[:, 2] = data[:, COL_LTIME]
-    out[:, 3] = data[:, COL_TEMP]
 
-    if COL_EMIT is not None and n_cols > COL_EMIT:
-        out[:, 4] = data[:, COL_EMIT]
-    # else emission_angle stays 0 — all points pass the < 10° filter
+    if n_cols == 5:
+        out[:, 0] = data[:, 0]  # lon
+        out[:, 1] = data[:, 1]  # lat
+        out[:, 2] = data[:, 2]  # local_time
+        out[:, 3] = data[:, 3]  # temperature
+        out[:, 4] = data[:, 4]  # emission_angle
+    elif n_cols == 4:
+        out[:, 0] = data[:, 0]  # lon
+        out[:, 1] = data[:, 1]  # lat
+        out[:, 2] = data[:, 2]  # local_time
+        out[:, 3] = data[:, 3]  # temperature
+        out[:, 4] = 0           # emission_angle missing
+    elif n_cols == 3:
+        out[:, 0] = data[:, 0]  # lon
+        out[:, 1] = data[:, 1]  # lat
+        out[:, 2] = 0           # local_time missing
+        out[:, 3] = data[:, 2]  # temperature
+        out[:, 4] = 0           # emission_angle missing
+    else:
+        log.error("%s: Unexpected number of columns (%d). Skipping file.", path.name, n_cols)
+        return None
 
     return out
 
