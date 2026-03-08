@@ -54,7 +54,7 @@ Lacus Mortis (45.0°N, 27.2°E) is a particularly well-chosen target for extendi
 
 **Phase 1: Apply the Existing Methodology as a Baseline**
 
-Extract temperature profiles from Lacus Mortis using the same preprocessing pipeline (channel 7, GP interpolation at 200×200 m bins, 0.5° bins). Run the pre-trained LordVAEder directly on this region *without retraining* to generate latent maps. This is a zero-shot generalization test: if the model was truly learning generalizable thermophysical processes rather than features specific to its training AOIs, it should produce coherent latent maps over Lacus Mortis. Compare the latent 3 map (thermal inertia proxy) against the H-parameter map from Hayne et al. (2017) and against rock abundance estimates from Bandfield et al. (2011) for this region. Quantify agreement using the Pearson correlation and examine residuals spatially.
+Extract temperature profiles from Lacus Mortis using the same preprocessing pipeline (channel 7, GP interpolation at 200×200 m bins, 0.5° bins). Run the pre-trained VAE directly on this region *without retraining* to generate latent maps. This is a zero-shot generalization test: if the model was truly learning generalizable thermophysical processes rather than features specific to its training AOIs, it should produce coherent latent maps over Lacus Mortis. Compare the latent 3 map (thermal inertia proxy) against the H-parameter map from Hayne et al. (2017) and against rock abundance estimates from Bandfield et al. (2011) for this region. Quantify agreement using the Pearson correlation and examine residuals spatially.
 
 **Phase 2: Fine-Tuning and the Scientific Experiment**
 
