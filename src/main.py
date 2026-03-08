@@ -4,6 +4,7 @@
 Created on Tue Nov 13 17:04:43 2018
 
 @author: bmoseley
+adapted by: arushisinha98
 """
 
 
@@ -33,7 +34,7 @@ class Trainer:
         
         # set seed
         if c.SEED == None: c.SEED = torch.initial_seed()
-        else: torch.manual_seed(c.SEED) # likely independent of numpy
+        else: torch.manual_seed(c.SEED)
         np.random.seed(c.SEED)
                        
         # clear directories
@@ -93,14 +94,17 @@ class Trainer:
         model.to(device)
 
         # print out parameters
-        writer.add_graph(model, torch.zeros((1,)+c.VELOCITY_SHAPE))# write graph before placing on GPU
+        model.eval()
+        torch.manual_seed(c.SEED)
+        np.random.seed(c.SEED)
+        writer.add_graph(model, torch.zeros((1,)+c.VELOCITY_SHAPE)) # write graph before placing on GPU
+        
         print()
         print("Model: %s"%(model.name))
         total_params = sum(p.numel() for p in model.parameters())
         total_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
         print("Total number of parameters: %i"%(total_params))
         print("Total number of trainable parameters: %i"%(total_trainable_params))
-        for p in model.parameters(): print(p.size(), p.numel())
 
         self.c, self.device, self.writer = c, device, writer
         self.traindataset, self.testdataset = traindataset, testdataset

@@ -1,6 +1,9 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
 import sys
 import matplotlib
-if 'linux' in sys.platform.lower(): matplotlib.use('Agg') # use a non-interactive backend (ie plotting without windows)
+matplotlib.use('Agg')  # Always use 'Agg' backend for headless environments before importing pyplot
 import matplotlib.pyplot as plt
 
 import numpy as np
