@@ -8,8 +8,5 @@
 # data
 data/
 
-# results
-results/
-
 # env
 .env
