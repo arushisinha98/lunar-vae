@@ -3,10 +3,14 @@
 !.pixi/config.toml
 
 # pycache
-*/__pycache__/**
+**/__pycache__/**
 
 # data
 data/
 
 # env
 .env
+
+# logs
+*.e*
+*.o*

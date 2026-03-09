@@ -1,0 +1,40 @@
+Phase 1: Zero-Shot Generalization — Lacus Mortis
+=======================================================
+
+DATA QUALITY:
+  Lacus Mortis  T_MU    = 53.19 K
+  Lacus Mortis  T_SIGMA = 22.64 K
+  Orig training T_MU    = 192.39 K
+  Orig training T_SIGMA = 99.14 K
+  Normalised LM range   = [-1.84, -0.44]
+
+INPUT:
+  N profiles   = 867190
+  Profile shape = (867190, 1, 120)
+  T range       = [10.4, 148.6] K
+  Model         = model_final.torch
+  Normalization = original training (T_MU=192.39, T_SIGMA=99.14)
+
+LATENT SPACE:
+  z0: mean=-0.1329  std=0.1451  range=[-0.4558, 0.3443]
+  z1: mean=4.4438  std=1.0093  range=[0.8280, 6.2883]
+  z2: mean=-2.9183  std=0.5472  range=[-3.3141, -0.9794]
+  z3: mean=2.8354  std=0.3376  range=[2.2725, 3.8510]
+
+RECONSTRUCTION QUALITY (normalised scale):
+  L1: mean=0.757172  std=0.166983  median=0.817792
+  L2: mean=0.849055  std=0.293586  median=0.943555
+
+POSTERIOR UNCERTAINTY:
+  σ(z0): mean=0.1088  std=0.0047
+  σ(z1): mean=1.2830  std=0.2664
+  σ(z2): mean=0.2690  std=0.0372
+  σ(z3): mean=0.1363  std=0.0037
+
+LATENT CORRELATIONS (Pearson r, N=867190):
+  z0 vs z1: r=-0.9773, p=0.00e+00
+  z0 vs z2: r=0.8980, p=0.00e+00
+  z0 vs z3: r=0.9768, p=0.00e+00
+  z1 vs z2: r=-0.9657, p=0.00e+00
+  z1 vs z3: r=-0.9967, p=0.00e+00
+  z2 vs z3: r=0.9667, p=0.00e+00
