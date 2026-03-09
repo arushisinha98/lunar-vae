@@ -99,7 +99,7 @@ Methods:
     - Rille‑proximal (≤2 km from centerline)
     - Control (≥5 km from rille, matched for latitude ± 0.5° and slope ± 2°)
     - Ran each profile through the VAE, obtained latent 3.
-- Applied the transform $\^{I} = e^{\frac{0.93⋅z_{3}}{2}}$ to convert to thermal inertia units.
+- Applied the transform $I = e^{\frac{0.93⋅z_{3}}{2}}$ to convert to thermal inertia units.
 
 Statistical tests: two‑sample Kolmogorov–Smirnov and Mann–Whitney U.
 
