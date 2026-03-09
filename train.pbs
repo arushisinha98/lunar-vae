@@ -1,0 +1,19 @@
+#!/bin/bash
+#PBS -N vae_train
+#PBS -o vae_train.o$PBS_JOBID
+#PBS -e vae_train.e$PBS_JOBID
+#PBS -l select=1:ncpus=4:ngpus=1:mem=16gb
+#PBS -l walltime=24:00:00
+
+# Load modules
+# module load Python/3.13.5-GCCcore-14.3.0
+# module load PyTorch/2.1.2-foss-2023a-CUDA-12.1.1
+
+# Ensure pixi is available
+export PATH="/rds/general/user/as4623/home/.pixi/bin:$PATH"
+
+# Change to the directory where you submitted the job
+cd "$PBS_O_WORKDIR"
+
+# Run your training script using pixi
+pixi run python -u src/main.py

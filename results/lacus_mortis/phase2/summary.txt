@@ -1,0 +1,33 @@
+Phase 2: Rille-Proximity Hypothesis Test
+==================================================
+
+POPULATIONS:
+  Total profiles         : 867190
+  Rille-proximal (≤2.0 km): 6037
+  Control (≥5.0 km, lat-matched): 352053
+  Distance range         : [0.00, 142.96] km
+
+LATENT 3 (z₃):
+  Rille-proximal : mean=2.8381 ± 0.3352
+  Control        : mean=2.8402 ± 0.3346
+  Difference     : -0.0021
+
+THERMAL INERTIA PROXY (Î = exp(0.93·z₃/2)):
+  Rille-proximal : mean=3.7914 ± 0.6561
+  Control        : mean=3.7950 ± 0.6555
+  Difference     : -0.0036
+  Cohen's d      : -0.0055
+
+STATISTICAL TESTS:
+  KS test   : D = 0.0396,  p = 1.54e-08
+  MW U test : U = 1039312128,  p = 9.98e-01  (one-sided: rille > control)
+
+CONCLUSION: Cannot reject H₀ at α = 0.05.
+  No statistically significant difference detected.
+
+LIMITATIONS:
+  - Rille waypoints are approximate (refine with LROC NAC)
+  - No slope matching (DEM data not available)
+  - Preprocessed profiles have low T_MU (~53 K) due to
+    GP kernel misconfiguration; latent values may not
+    reflect the full diurnal thermal cycle.
