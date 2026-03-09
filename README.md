@@ -75,7 +75,7 @@ We reproduced the original training. Figures below show the reconstruction quali
 
 ## Extension: Lacus Mortis
 
-This extensions were made possible by our [Lacus Mortis Diviner T-BOL Dataset (Enhanced Level-4 Product)](https://huggingface.co/datasets/arushisinha98/lunar) on HuggingFace Hub.
+These extensions were made possible by our [Lacus Mortis Diviner T-BOL Dataset](https://huggingface.co/datasets/arushisinha98/lunar) on HuggingFace Hub.
 
 ### Phase 1: Zero‑Shot Generalization
 
