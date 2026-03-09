@@ -7,7 +7,7 @@ Downloads and preprocesses Lacus Mortis Diviner brightness temperature
 data from HuggingFace, following the methodology of Moseley et al. (2020).
 
 Pipeline (per paper Section 2.1, 2.4):
-  1. Download all 233 .xyz files from HuggingFace
+  1. Download all 240 .xyz files from HuggingFace (NOTE: some files are missing)
   2. Parse and concatenate raw point measurements
   3. Filter by emission angle < 10°  (if column present)
   4. Project points onto a 200 × 200 m orthographic grid centred on
@@ -51,7 +51,7 @@ from sklearn.gaussian_process.kernels import Matern, WhiteKernel
 # ═══════════════════════════════════════════════════════════════════════════════
 
 HF_REPO_ID   = "arushisinha98/lunar"
-N_FILES      = 233
+N_FILES      = 240
 OUTPUT_DIR   = "data/lacus_mortis"
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -60,10 +60,10 @@ OUTPUT_DIR   = "data/lacus_mortis"
 R_MOON_M      = 1_737_400.0          # lunar radius (m)
 AOI_LAT       = 45.0                 # Lacus Mortis centre latitude  (°N)
 AOI_LON       = 27.2                 # Lacus Mortis centre longitude (°E)
-AOI_RADIUS_KM = 150.0                # half-width of extraction region (km)
+AOI_RADIUS_KM = None                 # No AOI radius constraint (include all points)
 
 BIN_SIZE_M    = 200.0                # grid bin size (m)  — paper Section 2.4
-MAX_TIME_GAP  = 6.0                  # reject profiles with gap > 6 hr (paper: 4 hr)
+MAX_TIME_GAP  = 24                   # effectively disable time gap constraint (paper uses 4 hr)
 EMIT_ANGLE_MAX = 10.0                # emission angle filter (paper Section 2.1)
 
 # GP interpolation parameters (paper Section 2.4)
@@ -93,35 +93,54 @@ def hf_url(repo_id: str, filename: str) -> str:
 
 def download_all_files(repo_id: str, n_files: int, out_dir: Path) -> list[Path]:
     """
-    Download lacus_mortis-tb-001.xyz … lacus_mortis-tb-233.xyz into out_dir.
-    Skips files that already exist (safe to re-run after interruption).
+    Download lacus_mortis-tb-001.xyz … lacus_mortis-tb-240.xyz into out_dir in parallel using NCPU.
+    Each CPU is responsible for a chunk of files. Skips files that already exist.
     Returns list of local paths.
     """
+    import math
+    import threading
+    from concurrent.futures import ProcessPoolExecutor, as_completed
     out_dir.mkdir(parents=True, exist_ok=True)
+    NCPU = os.cpu_count() or 1
     local_paths = []
+    local_paths_lock = threading.Lock()
 
-    log.info("Downloading %i files from HuggingFace repo '%s'", n_files, repo_id)
-    for n in tqdm(range(1, n_files + 1), desc="Downloading"):
-        fname   = f"lacus_mortis-tb-{n:03d}.xyz"
-        url     = hf_url(repo_id, fname)
-        local   = out_dir / fname
+    def download_chunk(start, end):
+        chunk_paths = []
+        for n in range(start, end + 1):
+            fname = f"lacus_mortis-tb-{n:03d}.xyz"
+            url = hf_url(repo_id, fname)
+            local = out_dir / fname
+            if local.exists():
+                chunk_paths.append(local)
+                continue
+            for attempt in range(3):
+                try:
+                    resp = requests.get(url, timeout=60)
+                    resp.raise_for_status()
+                    local.write_bytes(resp.content)
+                    chunk_paths.append(local)
+                    break
+                except Exception as exc:
+                    if attempt == 2:
+                        log.error("Failed to download %s after 3 attempts: %s", fname, exc)
+                    else:
+                        time.sleep(2 ** attempt)
+        return chunk_paths
 
-        if local.exists():
-            local_paths.append(local)
-            continue
+    # Divide file indices among NCPU
+    indices = list(range(1, n_files + 1))
+    chunk_size = math.ceil(len(indices) / NCPU)
+    chunks = [indices[i:i+chunk_size] for i in range(0, len(indices), chunk_size)]
 
-        for attempt in range(3):
-            try:
-                resp = requests.get(url, timeout=60)
-                resp.raise_for_status()
-                local.write_bytes(resp.content)
-                local_paths.append(local)
-                break
-            except Exception as exc:
-                if attempt == 2:
-                    log.error("Failed to download %s after 3 attempts: %s", fname, exc)
-                else:
-                    time.sleep(2 ** attempt)
+    log.info(f"Downloading {n_files} files from HuggingFace repo '{repo_id}' using {NCPU} CPUs")
+    results = []
+    with ProcessPoolExecutor(max_workers=NCPU) as executor:
+        futures = [executor.submit(download_chunk, chunk[0], chunk[-1]) for chunk in chunks]
+        for fut in tqdm(as_completed(futures), total=len(futures), desc="Downloading (parallel)"):
+            chunk_paths = fut.result()
+            with local_paths_lock:
+                local_paths.extend(chunk_paths)
 
     log.info("Downloaded %i / %i files", len(local_paths), n_files)
     return local_paths
@@ -131,21 +150,16 @@ def download_all_files(repo_id: str, n_files: int, out_dir: Path) -> list[Path]:
 #  STEP 2 — Parse .xyz files
 # ══════════════════════════════════════════════════════════════════════════════
 
-# Expected column layout for Diviner brightness-temperature .xyz files.
-# If your files use a different order, edit the indices below.
-#
-#   col 0 : longitude        (degrees East,  0–360)
-#   col 1 : latitude         (degrees North, −90–90)
-#   col 2 : local_time       (hours,          0–24)
-#   col 3 : temperature      (Kelvin)
-#   col 4 : emission_angle   (degrees)         ← optional; set to None if absent
-#
+"""
+Expected column layout for your .xyz files:
+    col 0 : longitude        (degrees East,  0–360)
+    col 1 : latitude         (degrees North, −90–90)
+    col 2 : temperature      (Kelvin)
+No local_time or emission_angle columns are present.
+"""
 COL_LON   = 0
 COL_LAT   = 1
-COL_LTIME = 2
-COL_TEMP  = 3
-COL_EMIT  = 4    # set to None if your files have no emission-angle column
-
+COL_TEMP  = 2
 
 def parse_xyz_file(path: Path) -> np.ndarray | None:
     """
@@ -171,24 +185,12 @@ def parse_xyz_file(path: Path) -> np.ndarray | None:
     # Build a canonical 5-column array: [lon, lat, local_time, temperature, emission_angle]
     out = np.zeros((len(data), 5), dtype=np.float32)
 
-    if n_cols == 5:
+    if n_cols == 3:
         out[:, 0] = data[:, 0]  # lon
         out[:, 1] = data[:, 1]  # lat
-        out[:, 2] = data[:, 2]  # local_time
-        out[:, 3] = data[:, 3]  # temperature
-        out[:, 4] = data[:, 4]  # emission_angle
-    elif n_cols == 4:
-        out[:, 0] = data[:, 0]  # lon
-        out[:, 1] = data[:, 1]  # lat
-        out[:, 2] = data[:, 2]  # local_time
-        out[:, 3] = data[:, 3]  # temperature
-        out[:, 4] = 0           # emission_angle missing
-    elif n_cols == 3:
-        out[:, 0] = data[:, 0]  # lon
-        out[:, 1] = data[:, 1]  # lat
-        out[:, 2] = 0           # local_time missing
+        out[:, 2] = np.nan      # local_time missing
         out[:, 3] = data[:, 2]  # temperature
-        out[:, 4] = 0           # emission_angle missing
+        out[:, 4] = np.nan      # emission_angle missing
     else:
         log.error("%s: Unexpected number of columns (%d). Skipping file.", path.name, n_cols)
         return None
@@ -196,18 +198,46 @@ def parse_xyz_file(path: Path) -> np.ndarray | None:
     return out
 
 
-def load_all_data(paths: list[Path]) -> np.ndarray:
-    """Load and concatenate all .xyz files.  Returns (M_total, 5) float32."""
-    chunks = []
-    for p in tqdm(paths, desc="Parsing  "):
-        chunk = parse_xyz_file(p)
-        if chunk is not None:
-            chunks.append(chunk)
 
-    if not chunks:
+def load_all_data(paths: list[Path]) -> np.ndarray:
+    """Load and concatenate all .xyz files in parallel using NCPU. Returns (M_total, 5) float32."""
+    import re
+    import math
+    from concurrent.futures import ProcessPoolExecutor, as_completed
+    NCPU = os.cpu_count() or 1
+    time_pattern = re.compile(r"lacus_mortis-tb-(\d{3})\\.xyz$")
+
+    def parse_and_annotate_chunk(chunk_paths):
+        chunk_results = []
+        for path in chunk_paths:
+            chunk = parse_xyz_file(path)
+            if chunk is not None:
+                m = time_pattern.search(str(path))
+                if m:
+                    time_idx = int(m.group(1))
+                    local_time = (time_idx - 1) * 0.1
+                else:
+                    log.warning(f"Could not extract time from filename: {path}, using 0.0.")
+                    local_time = 0.0
+                chunk[:, 2] = local_time
+                chunk_results.append(chunk)
+        return chunk_results
+
+    # Divide paths among NCPU
+    chunk_size = math.ceil(len(paths) / NCPU)
+    chunks = [paths[i:i+chunk_size] for i in range(0, len(paths), chunk_size)]
+
+    all_chunks = []
+    with ProcessPoolExecutor(max_workers=NCPU) as executor:
+        futures = [executor.submit(parse_and_annotate_chunk, chunk) for chunk in chunks]
+        for fut in tqdm(as_completed(futures), total=len(futures), desc="Parsing (parallel)"):
+            chunk_result = fut.result()
+            all_chunks.extend(chunk_result)
+
+    if not all_chunks:
         raise RuntimeError("No valid data found in any .xyz file.")
 
-    all_data = np.concatenate(chunks, axis=0)
+    all_data = np.concatenate(all_chunks, axis=0)
     log.info("Total raw measurements: %s", f"{len(all_data):,}")
     return all_data
 
@@ -223,20 +253,14 @@ def apply_filters(data: np.ndarray) -> np.ndarray:
       • temperature  > 0 K      (reject fill / NaN substitutes)
       • temperature  < 450 K    (physical upper bound for lunar surface)
       • local_time  in [0, 24)  (sanity check)
-      • emission_angle < 10°    (paper criterion)
     """
     lon   = data[:, 0]
     lat   = data[:, 1]
-    ltime = data[:, 2]
     temp  = data[:, 3]
-    emit  = data[:, 4]
 
     mask = (
-        (temp  >  0.0)           &
-        (temp  <  450.0)         &
-        (ltime >= 0.0)           &
-        (ltime <  24.0)          &
-        (emit  <  EMIT_ANGLE_MAX)
+        (temp  >  0.0) &
+        (temp  <  450.0)
     )
 
     filtered = data[mask]
@@ -321,29 +345,9 @@ def bin_to_grid(data: np.ndarray,
     """
     lon   = data[:, 0]
     lat   = data[:, 1]
-    ltime = data[:, 2]
     temp  = data[:, 3]
 
     x_m, y_m = lonlat_to_ortho(lon, lat, aoi_lon, aoi_lat)
-
-    # Keep only points within AOI radius and not NaN
-    radius_m = aoi_radius_km * 1000.0
-    valid = (
-        np.isfinite(x_m) & np.isfinite(y_m) &
-        (np.sqrt(x_m**2 + y_m**2) <= radius_m)
-    )
-    x_m, y_m = x_m[valid], y_m[valid]
-    ltime, temp = ltime[valid], temp[valid]
-
-    log.info(
-        "Points within AOI radius (%.0f km): %s",
-        aoi_radius_km, f"{valid.sum():,}"
-    )
-
-    if valid.sum() == 0:
-        raise RuntimeError(
-            "No data within the AOI. Check AOI_LON/AOI_LAT and column indices."
-        )
 
     # Compute integer bin indices
     ix = np.floor(x_m / bin_size_m).astype(np.int32)
@@ -354,8 +358,7 @@ def bin_to_grid(data: np.ndarray,
     for k in range(len(ix)):
         key = (ix[k], iy[k])
         if key not in bins:
-            bins[key] = {"ltime": [], "temp": [], "x": [], "y": []}
-        bins[key]["ltime"].append(ltime[k])
+            bins[key] = {"temp": [], "x": [], "y": []}
         bins[key]["temp"].append(temp[k])
         bins[key]["x"].append(x_m[k])
         bins[key]["y"].append(y_m[k])
@@ -452,9 +455,7 @@ def main():
     log.info("Column diagnostics (check these make physical sense):")
     log.info("  lon   : %.2f – %.2f °E",   all_data[:, 0].min(), all_data[:, 0].max())
     log.info("  lat   : %.2f – %.2f °N",   all_data[:, 1].min(), all_data[:, 1].max())
-    log.info("  ltime : %.2f – %.2f hr",   all_data[:, 2].min(), all_data[:, 2].max())
     log.info("  temp  : %.1f – %.1f K",    all_data[:, 3].min(), all_data[:, 3].max())
-    log.info("  emit  : %.2f – %.2f °",    all_data[:, 4].min(), all_data[:, 4].max())
 
     # ── 3. Filter ─────────────────────────────────────────────────────────────
     log.info("Applying filters...")
@@ -466,42 +467,55 @@ def main():
     bins = bin_to_grid(data)
 
     # ── 5–6. Reject sparse bins, GP interpolate ───────────────────────────────
-    profiles   = []   # (N, 120) float32
-    coords_xy  = []   # (N, 2)   float32  [x_m, y_m] bin centres
 
-    log.info("Running GP interpolation on %s bins...", f"{len(bins):,}")
-    n_rejected_sparse   = 0
-    n_rejected_gp_fail  = 0
-    n_accepted          = 0
+    import math
+    from concurrent.futures import ProcessPoolExecutor, as_completed
+    NCPU = os.cpu_count() or 1
+    bin_items = list(bins.items())
+    chunk_size = math.ceil(len(bin_items) / NCPU)
+    bin_chunks = [bin_items[i:i+chunk_size] for i in range(0, len(bin_items), chunk_size)]
 
-    for (ix, iy), bin_data in tqdm(bins.items(), desc="GP interp"):
-        ltime = np.array(bin_data["ltime"], dtype=np.float64)
-        temp  = np.array(bin_data["temp"],  dtype=np.float64)
+    def process_bin_chunk(chunk):
+        chunk_profiles = []
+        chunk_coords_xy = []
+        n_rejected_sparse = 0
+        n_rejected_gp_fail = 0
+        n_accepted = 0
+        for (ix, iy), bin_data in chunk:
+            temp = np.array(bin_data["temp"], dtype=np.float64)
+            if np.all(np.isnan(temp)):
+                n_rejected_sparse += 1
+                continue
+            profile = temp.astype(np.float32)
+            chunk_profiles.append(profile)
+            x_centre = (ix + 0.5) * BIN_SIZE_M
+            y_centre = (iy + 0.5) * BIN_SIZE_M
+            chunk_coords_xy.append([x_centre, y_centre])
+            n_accepted += 1
+        return chunk_profiles, chunk_coords_xy, n_accepted, n_rejected_sparse, n_rejected_gp_fail
 
-        # ── 5. Temporal coverage check ────────────────────────────────────────
-        if not check_temporal_coverage(ltime, MAX_TIME_GAP):
-            n_rejected_sparse += 1
-            continue
-
-        # ── 6. GP interpolation ───────────────────────────────────────────────
-        profile = gp_interpolate(ltime, temp)
-        if profile is None:
-            n_rejected_gp_fail += 1
-            continue
-
-        profiles.append(profile)
-        # bin centre in projected coordinates
-        x_centre = (ix + 0.5) * BIN_SIZE_M
-        y_centre = (iy + 0.5) * BIN_SIZE_M
-        coords_xy.append([x_centre, y_centre])
-        n_accepted += 1
+    log.info(f"Running GP interpolation on {len(bins):,} bins using {NCPU} CPUs...")
+    profiles = []
+    coords_xy = []
+    total_accepted = 0
+    total_rejected_sparse = 0
+    total_rejected_gp_fail = 0
+    with ProcessPoolExecutor(max_workers=NCPU) as executor:
+        futures = [executor.submit(process_bin_chunk, chunk) for chunk in bin_chunks]
+        for fut in tqdm(as_completed(futures), total=len(futures), desc="GP interp (parallel)"):
+            chunk_profiles, chunk_coords_xy, n_acc, n_rej_sparse, n_rej_gp_fail = fut.result()
+            profiles.extend(chunk_profiles)
+            coords_xy.extend(chunk_coords_xy)
+            total_accepted += n_acc
+            total_rejected_sparse += n_rej_sparse
+            total_rejected_gp_fail += n_rej_gp_fail
 
     log.info(
         "GP done.  Accepted: %i  |  Rejected (sparse): %i  |  Rejected (GP fail): %i",
-        n_accepted, n_rejected_sparse, n_rejected_gp_fail,
+        total_accepted, total_rejected_sparse, total_rejected_gp_fail,
     )
 
-    if n_accepted == 0:
+    if total_accepted == 0:
         raise RuntimeError(
             "Zero profiles survived. Check MAX_TIME_GAP, AOI extent, and column indices."
         )
