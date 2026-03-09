@@ -226,4 +226,4 @@ Extending our Lacus Mortis study, we can:
 
 ## Acknowledgments
 
-This work builds on the original research by Ben Moseley and colleagues, conducted at the NASA Frontier Development Lab. We thank the Diviner team for making their data publicly available. The Lacus Mortis extension was inspired by discussions with David Paige and his .
+This work builds on the original research by Ben Moseley and colleagues, conducted at the NASA Frontier Development Lab. We thank the Diviner team for making their data publicly available. The Lacus Mortis extension was inspired by discussions with David Paige and his team.
