@@ -75,6 +75,8 @@ We reproduced the original training. Figures below show the reconstruction quali
 
 ## Extension: Lacus Mortis
 
+This extensions were made possible by our [Lacus Mortis Diviner T-BOL Dataset (Enhanced Level-4 Product)](https://huggingface.co/datasets/arushisinha98/lunar) on HuggingFace Hub.
+
 ### Phase 1: Zero‑Shot Generalization
 
 We ran the pre‑trained VAE (trained on the original 48 AOIs) over Lacus Mortis without any fine‑tuning. The model produced coherent latent maps, confirming that the learned representation generalizes beyond its training set. However, visual inspection of latent 3 (thermal inertia proxy) revealed:

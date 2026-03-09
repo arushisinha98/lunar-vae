@@ -1,0 +1,95 @@
+#!/bin/bash
+# ═══════════════════════════════════════════════════════════════════════════════
+# Lacus Mortis preprocessing pipeline — multi-node PBS submission
+# ═══════════════════════════════════════════════════════════════════════════════
+#
+# Usage (from login node):
+#   bash lacus.pbs submit        # submit the full 3-stage pipeline
+#   bash lacus.pbs submit 16     # override N_SHARDS (default: 16)
+#
+# This script doubles as:
+#   1. A submission controller   (when called as: bash lacus.pbs submit [N_SHARDS])
+#   2. A PBS worker              (when queued by qsub with -v STAGE=...)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ── Configuration ─────────────────────────────────────────────────────────────
+NCPU_PER_NODE=8
+PIXI_BIN="/rds/general/user/as4623/home/.pixi/bin"
+
+# ── Submission mode (run from login node) ─────────────────────────────────────
+if [[ "${1:-}" == "submit" ]]; then
+    N_SHARDS=${2:-16}
+    LAST_SHARD=$((N_SHARDS - 1))
+
+    echo "=== Lacus Mortis pipeline ==="
+    echo "  N_SHARDS      = $N_SHARDS"
+    echo "  NCPU_PER_NODE = $NCPU_PER_NODE"
+    echo ""
+
+    # Stage 1: prepare (single node, 64GB to hold all parsed data)
+    PREP=$(qsub \
+        -N lacus_prep \
+        -o lacus_prep.o\$PBS_JOBID \
+        -e lacus_prep.e\$PBS_JOBID \
+        -l select=1:ncpus=${NCPU_PER_NODE}:mem=64gb \
+        -l walltime=04:00:00 \
+        -v STAGE=prepare \
+        "$0")
+    echo "Submitted prepare : $PREP"
+
+    # Stage 2: GP array (one job per shard, each gets its own node)
+    GP=$(qsub \
+        -N lacus_gp \
+        -o lacus_gp.o\$PBS_JOBID \
+        -e lacus_gp.e\$PBS_JOBID \
+        -J 0-${LAST_SHARD} \
+        -l select=1:ncpus=${NCPU_PER_NODE}:mem=32gb \
+        -l walltime=24:00:00 \
+        -W depend=afterok:${PREP} \
+        -v STAGE=gp,N_SHARDS=${N_SHARDS} \
+        "$0")
+    echo "Submitted GP array: $GP  (shards 0-${LAST_SHARD})"
+
+    # Stage 3: merge (single node, light work)
+    MERGE=$(qsub \
+        -N lacus_merge \
+        -o lacus_merge.o\$PBS_JOBID \
+        -e lacus_merge.e\$PBS_JOBID \
+        -l select=1:ncpus=1:mem=32gb \
+        -l walltime=01:00:00 \
+        -W depend=afterok:${GP} \
+        -v STAGE=merge,N_SHARDS=${N_SHARDS} \
+        "$0")
+    echo "Submitted merge   : $MERGE"
+    echo ""
+    echo "Monitor with:  qstat -u \$USER"
+    exit 0
+fi
+
+# ── PBS worker mode (inside a queued job) ─────────────────────────────────────
+export PATH="${PIXI_BIN}:$PATH"
+cd "$PBS_O_WORKDIR"
+
+case "${STAGE:-}" in
+    prepare)
+        echo "=== PREPARE stage ==="
+        pixi run python -u src/lacus_mortis/preprocess.py prepare
+        ;;
+    gp)
+        echo "=== GP stage — shard ${PBS_ARRAY_INDEX} of ${N_SHARDS} ==="
+        pixi run python -u src/lacus_mortis/preprocess.py gp \
+            --shard "${PBS_ARRAY_INDEX}" \
+            --n-shards "${N_SHARDS}" \
+            --ncpu "${NCPU_PER_NODE:-8}"
+        ;;
+    merge)
+        echo "=== MERGE stage (${N_SHARDS} shards) ==="
+        pixi run python -u src/lacus_mortis/preprocess.py merge \
+            --n-shards "${N_SHARDS}"
+        ;;
+    *)
+        echo "ERROR: Unknown STAGE='${STAGE:-}'"
+        echo "Submit with: bash $0 submit"
+        exit 1
+        ;;
+esac
