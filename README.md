@@ -144,8 +144,8 @@ pixi run tensorboard --logdir results/summaries/<MODELNAME>
 6. Lacus Mortis extension
 
 ```bash
-# Preprocess Lacus Mortis profiles
-pixi run python src/lacus_mortis/preprocess.py
+# Preprocess Lacus Mortis profiles (on HPC)
+bash lacus.pbs submit
 # Run Phase 1 (zero-shot)
 pixi run python src/lacus_mortis/phase1.py
 # Run Phase 2 (rille experiment)
