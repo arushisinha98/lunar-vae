@@ -1,7 +1,7 @@
 <div align="center">
    <h1>Unsupervised Learning for Thermophysical Analysis on the Lunar Surface: A Replication and Extension at Lacus Mortis</h1>
    <p>
-      <img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="Python 3.7+">
+      <img src="https://img.shields.io/badge/license-%20%20GNU%20GPLv3%20-green?style=plastic">
       <img src="https://img.shields.io/badge/python-3.9+-blue.svg">
    </p>
 </div>
